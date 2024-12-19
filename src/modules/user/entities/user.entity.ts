@@ -22,6 +22,10 @@ export class User extends RootEntity {
   @Exclude()
   password: string;
 
+  @Column({ nullable: true })
+  @Exclude()
+  refreshToken: string;
+
   @Column({ default: true })
   isActive: boolean;
 }

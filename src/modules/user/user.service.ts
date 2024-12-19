@@ -21,18 +21,19 @@ export class UserService {
   ) {}
 
   async register(dto: RegisterUserDto) {
-    const busyUsername = await this.userRepo.findOneBy({
-      username: dto.username,
-    });
-    if (busyUsername) HttpError({ code: 'BUSY_USERNAME' });
+    if (
+      await this.userRepo.existsBy({
+        username: dto.username,
+      })
+    )
+      HttpError({ code: 'BUSY_USERNAME' });
 
     const user = this.userRepo.create({
-      username: dto.username,
-      email: dto.email,
+      ...dto,
       password: encrypt(dto.password),
     });
 
-    const [access_token, refresh_token] = [
+    const [accessToken, refreshToken] = [
       sign({ id: user.id, role: Role.User }, env.ACCESS_TOKEN_SECRET, {
         expiresIn: '2h',
       }),
@@ -40,13 +41,13 @@ export class UserService {
         expiresIn: '1d',
       }),
     ];
-    user.refresh_token = await hash(refresh_token, 10);
+    user.refreshToken = await hash(refreshToken, 10);
     await this.userRepo.save(user);
 
     return {
       ...user,
-      access_token: access_token,
-      refresh_token: refresh_token,
+      accessToken,
+      refreshToken,
     };
   }
 
@@ -57,15 +58,14 @@ export class UserService {
   }
 
   async getAll(query: GetUserQueryDto) {
-    const { limit = 10, page = 1, email, username } = query;
+    const { limit = 10, page = 1, username } = query;
     const [result, total] = await this.userRepo.findAndCount({
       where: {
         username: Like(`%${username?.trim() || ''}%`),
-        email: Like(`%${email?.trim() || ''}%`),
       },
       skip: (page - 1) * limit,
       take: limit,
-      order: { created_at: 'DESC' },
+      order: { createdAt: 'DESC' },
     });
 
     return { total, page, limit, data: result };
@@ -84,7 +84,7 @@ export class UserService {
     const passwordMatch = dto.password === decrypt(user.password);
     if (!passwordMatch) HttpError({ code: 'WRONG_PASSWORD' });
 
-    const [access_token, refresh_token] = [
+    const [accessToken, refreshToken] = [
       sign({ id: user.id, role: Role.User }, env.ACCESS_TOKEN_SECRET, {
         expiresIn: '2h',
       }),
@@ -96,26 +96,26 @@ export class UserService {
     await this.userRepo.update(
       { id: user.id },
       {
-        refresh_token: await hash(refresh_token, 10),
+        refreshToken: await hash(refreshToken, 10),
       },
     );
 
     return {
       ...user,
-      access_token: access_token,
-      refresh_token: refresh_token,
+      accessToken,
+      refreshToken,
     };
   }
 
   async logout(id: number) {
     const user = await this.userRepo.findOneBy({ id });
     if (!user) HttpError({ code: 'USER_NOT_FOUND' });
-    user.refresh_token = null;
+    user.refreshToken = null;
     return await this.userRepo.save(user);
   }
 
   async refresh(dto: RefreshUserDto) {
-    const token = dto.refresh_token;
+    const token = dto.refreshToken;
     const userData = verify(token, env.REFRESH_TOKEN_SECRET) as {
       id: number;
       role: string;
@@ -125,18 +125,15 @@ export class UserService {
     const user = await this.userRepo.findOneBy({ id: +userData.id });
     if (!user) HttpError({ code: 'USER_NOT_FOUND' });
 
-    const isRefTokenMatch = await compare(
-      dto.refresh_token,
-      user.refresh_token,
-    );
-    if (!isRefTokenMatch) HttpError({ code: 'WRONG_REFRESH_TOKEN' });
+    const isRefTokenMatch = await compare(dto.refreshToken, user.refreshToken);
+    if (!isRefTokenMatch) HttpError({ code: 'accessToken' });
 
-    const access_token = sign(
+    const accessToken = sign(
       { id: user.id, role: Role.User },
       env.ACCESS_TOKEN_SECRET,
       { expiresIn: '2h' },
     );
-    return { ...user, access_token: access_token };
+    return { ...user, accessToken };
   }
 
   async update(id: number, dto: UpdateUserDto) {

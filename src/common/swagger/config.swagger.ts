@@ -1,8 +1,8 @@
 import { DocumentBuilder } from '@nestjs/swagger';
 
 export const ApiSwaggerOptions = new DocumentBuilder()
-  .setTitle('ivent')
-  .setDescription('ivent documantation')
+  .setTitle('projectname')
+  .setDescription('projectname documentation')
   .setVersion('1.0')
   .addBearerAuth(
     {

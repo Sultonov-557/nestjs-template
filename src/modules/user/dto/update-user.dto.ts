@@ -9,7 +9,7 @@ export class UpdateUserDto {
   password: string;
 
   @IsPassword(false)
-  old_password: string;
+  oldPassword: string;
 
   @IsName(false)
   firstName: string;

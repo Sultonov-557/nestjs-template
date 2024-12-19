@@ -1,11 +1,18 @@
-import { ExceptionFilter, Catch, ArgumentsHost, BadRequestException } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  BadRequestException,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { isObject } from 'class-validator';
 import { CoreApiResponse } from '../response/core.response';
 
 export const getStatusCode = (exception: unknown): number => {
-  return exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+  return exception instanceof HttpException
+    ? exception.getStatus()
+    : HttpStatus.INTERNAL_SERVER_ERROR;
 };
 
 @Catch()
